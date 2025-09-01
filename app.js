@@ -64,3 +64,24 @@ app.route("/register")
   .get(function (req, res) {
     res.render("register");
   });
+
+app.route("/homepage")
+  .get(function (req, res) {
+    res.redirect("/");
+  })
+  .post(async function (req, res) {
+    let userName = req.body.userName;
+    let password = req.body.password;
+    try {
+      const foundUser = await User.findOne({ email: userName });
+      if (foundUser && foundUser.password === password) {
+        res.render("homepage");
+      } else {
+        console.log("The user was not found or the wrong password");
+        res.redirect("/");
+      }
+    } catch (err) {
+      console.log("User was not found");
+      res.status(500).send("Server error");
+    }
+  });
