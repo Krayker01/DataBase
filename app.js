@@ -9,10 +9,17 @@ app.use(express.static(__dirname + "/public"));
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Adding a hidden folder for API
+require("dotenv").config();
+
+// Adding a function for password hashing
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+
 const mongoose = require('mongoose');
 main().catch(err => console.log(err));
 async function main() {
-  await mongoose.connect('mongodb://127.0.0.1:27017/registerDB');
+  await mongoose.connect(process.env.DATABASEKEY);
 };
 const userSchema = new mongoose.Schema({
   email: {
@@ -35,16 +42,18 @@ app.route("/")
     res.render("index");
   })
   .post(async function (req, res) {
-    const newUser = new User({
-      email: req.body.userName,
-      password: req.body.password
-    });
-
     try {
+      const hash = await bcrypt.hash(req.body.password, saltRounds);
+
+      const newUser = new User({
+        email: req.body.userName,
+        password: hash
+      });
+
       await newUser.save();
       res.redirect("/");
     } catch (err) {
-      console.log(err);
+      console.error(err);
       res.status(500).send("Error saving user");
     }
   });
@@ -66,22 +75,23 @@ app.route("/register")
   });
 
 app.route("/homepage")
-  .get(function (req, res) {
-    res.redirect("/");
-  })
   .post(async function (req, res) {
-    let userName = req.body.userName;
-    let password = req.body.password;
     try {
-      const foundUser = await User.findOne({ email: userName });
-      if (foundUser && foundUser.password === password) {
-        res.render("homepage");
-      } else {
-        console.log("The user was not found or the wrong password");
+      const foundUser = await User.findOne({ email: req.body.userName });
+
+      if (!foundUser) {
+        console.log("User not found");
         res.redirect("/");
+      } else {
+        const compare = await bcrypt.compare(req.body.password, foundUser.password);
+        if (compare === true) {
+          res.render("homepage");
+        } else {
+          console.log("Wrong login or password");
+          res.redirect("/");
+        }
       }
     } catch (err) {
-      console.log("User was not found");
       res.status(500).send("Server error");
     }
   });
