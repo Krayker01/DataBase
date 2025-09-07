@@ -7,7 +7,34 @@
 </head>
 
 <body>
-  <h1>Done</h1>
+  <h1>Hello, <%= userNameForHello %>
+  </h1>
+
+  <form action="/homepage" method="post">
+    <h1>Write a new post</h1>
+    <input name="title" type="text" placeholder="What is your post about">
+    <input name="publication" type="text" placeholder="Write your post">
+    <button type="submit">Sumbit</button>
+  </form>
+
+  <% if (userPublications && userPublications.length> 0) { %>
+    <ul>
+      <% userPublications.forEach(pub=> { %>
+        <li>
+          <h3>
+            <%= pub.title %>
+          </h3>
+          <p>
+            <%= pub.publication %>
+          </p>
+          <small>
+            <%= new Date(pub.createdAt).toLocaleString() %>
+          </small>
+        </li>
+        <% }) %>
+    </ul>
+    <% } %>
+
 </body>
 
 </html>
