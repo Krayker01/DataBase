@@ -23,7 +23,7 @@ app.use(session({
   cookie: {
     maxAge: 300000, //5min
     path: "/",
-    domain: ".myapp.local",
+    // domain: ".myapp.local",
     httpOnly: true,
     secure: false,
     sameSite: "lax"
@@ -56,7 +56,8 @@ const userSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: [true, "Required"]
+    required: [true, "Required"],
+    unique: true
   },
   password: {
     type: String,
@@ -94,25 +95,16 @@ app.listen(port, function () {
 });
 
 app.route("/")
-  .get(function (req, res) {
-    res.render("index");
+  .get(async function (req, res) {
+    const allPublications = await Publication.find()
+      .populate("author", "name")
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    res.render("index", { allPublications: allPublications });
   })
-  .post(async function (req, res) {
-    try {
-      const hash = await bcrypt.hash(req.body.password, saltRounds);
-
-      const newUser = new User({
-        name: req.body.firstUserName,
-        email: req.body.userName,
-        password: hash
-      });
-
-      await newUser.save();
-      res.redirect("/");
-    } catch (err) {
-      console.error(err);
-      res.status(500).send("Error saving user");
-    }
+  .post(function (req, res) {
+    res.render("index");
   });
 
 app.route("/login")
@@ -122,27 +114,23 @@ app.route("/login")
 
       if (!foundUser) {
         console.log("User not found");
-        res.redirect("login");
+        return res.redirect("/login");
+      }
+
+      const compare = await bcrypt.compare(req.body.password, foundUser.password);
+      if (compare === true) {
+
+        req.session.userId = foundUser._id;
+        req.session.userName = foundUser.name;
+        req.session.userRole = foundUser.role;
+        res.redirect("/homepage");
+
       } else {
-        const compare = await bcrypt.compare(req.body.password, foundUser.password);
-        if (compare === true) {
-
-          req.session.userId = foundUser._id;
-          req.session.userName = foundUser.name;
-          req.session.userRole = foundUser.role;
-          req.session.save(err => {
-            if (err) console.error(err);
-            res.redirect("/homepage");
-          });
-
-
-        } else {
-          console.log("Wrong login or password");
-          res.redirect("/login");
-        }
+        console.log("Wrong login or password");
+        return res.redirect("/login");
       }
     } catch (err) {
-      res.status(500).send("Server error");
+      return res.status(500).send("Server error");
     }
   })
   .get(function (req, res) {
@@ -151,24 +139,72 @@ app.route("/login")
 
 
 app.route("/register")
-  .post(function (req, res) {
-    res.render("register");
-  })
   .get(function (req, res) {
     res.render("register");
+  })
+  .post(async function (req, res) {
+    try {
+
+      if (existingUser) {
+        return res.status(400).send("Email is alredy registered");
+      }
+
+      const hash = await bcrypt.hash(req.body.password, saltRounds);
+
+      const newUser = new User({
+        name: req.body.firstUserName,
+        email: req.body.userName,
+        password: hash
+      });
+
+      const existingUser = await User.findOne({ email: newUser.email })
+
+      await newUser.save();
+      res.redirect("/");
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Error saving user");
+    }
   });
 
 app.route("/homepage")
   .get(isAuthenticated, async function (req, res) {
-    const userPublications = await Publication.find({ author: req.session.userId }).sort({ createdAt: -1 });
-    res.render("homepage", { userNameForHello: req.session.userName, userPublications: userPublications });
+    const allPublications = await Publication.find()
+      .populate("author", "name")
+      .sort({ createdAt: -1 })
+      .limit(20);
+    const currentUserId = req.session.userId;
+    const userPublications = await Publication.find({ author: currentUserId }).sort({ createdAt: -1 });
+    res.render("homepage", { userNameForHello: req.session.userName, userPublications: userPublications, allPublications: allPublications, currentUserId: currentUserId });
   })
-  .post(function (req, res) {
+  .post(async function (req, res) {
     const newPublication = new Publication({
       author: req.session.userId,
       title: req.body.title,
       publication: req.body.publication
     });
-    newPublication.save();
+    await newPublication.save();
     res.redirect("/homepage");
-  })
+  });
+
+app.post("/publication/delete/:id", isAuthenticated, async function (req, res) {
+  try {
+    const pubId = req.params.id; //id is taken from the dynamic URL
+    const deletePublication = await Publication.findOne({ _id: pubId, author: req.session.userId });
+    if (!deletePublication) {
+      return res.status(400).send("Publication was not found");
+    }
+    await deletePublication.deleteOne({ _id: pubId });
+    res.redirect("/homepage");
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Server error");
+  }
+});
+
+app.post("/logout", (req, res) => {
+  req.session.destroy(err => {
+    if (err) console.error(err);
+    res.redirect("/login");
+  });
+});

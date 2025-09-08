@@ -3,27 +3,53 @@
 
 <head>
   <meta charset="utf-8">
-  <title></title>
+  <title>Think out loud</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
   <link rel="stylesheet" href="/css/styles.css">
 </head>
 
 <body>
-
-  <div class="container text-center buttonsDiv">
-    <div class="row">
-      <form class="col-6" action="/register" method="get">
-        <div>
-          <button class="btn btn-lg btn-outline-primary">register</button>
-        </div>
-      </form>
-      <form class="col-6" action="/login" method="get">
-        <div>
-          <button class="btn btn-lg btn-outline-success">login</button>
-        </div>
-      </form>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <div class="container">
+      <a class="navbar-brand" href="/">Think out loud</a>
+      <div class="d-flex">
+        <a href="/register" class="btn btn-outline-light me-2">Register</a>
+        <a href="/login" class="btn btn-outline-light">Login</a>
+      </div>
     </div>
+  </nav>
+
+  <div class="container">
+
+    <% if (allPublications && allPublications.length> 0) { %>
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        <% allPublications.forEach(pub=> { %>
+          <div class="col">
+            <div class="card h-100 shadow-sm">
+              <div class="card-body">
+                <h5 class="card-title">
+                  <%= pub.title %>
+                </h5>
+                <p class="card-text">
+                  <%= pub.publication %>
+                </p>
+              </div>
+              <div class="card-footer text-muted">
+                <small>
+                  <%= new Date(pub.createdAt).toLocaleString() %> | Written by <%= pub.author.name %>
+                </small>
+              </div>
+            </div>
+          </div>
+          <% }) %>
+      </div>
+      <% } else { %>
+        <div class="alert alert-info text-center">
+          There are no publications yet.
+        </div>
+        <% } %>
+
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"

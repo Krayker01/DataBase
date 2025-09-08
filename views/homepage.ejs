@@ -3,38 +3,73 @@
 
 <head>
   <meta charset="utf-8">
-  <title></title>
+  <title>Homepage</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
 
 <body>
-  <h1>Hello, <%= userNameForHello %>
-  </h1>
+  <div class="container my-4">
 
-  <form action="/homepage" method="post">
-    <h1>Write a new post</h1>
-    <input name="title" type="text" placeholder="What is your post about">
-    <input name="publication" type="text" placeholder="Write your post">
-    <button type="submit">Sumbit</button>
-  </form>
+    <!-- Header with username and logout -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1>Hello, <%= userNameForHello %>!</h1>
+      <form action="/logout" method="post">
+        <button type="submit" class="btn btn-outline-danger">Logout</button>
+      </form>
+    </div>
 
-  <% if (userPublications && userPublications.length> 0) { %>
-    <ul>
-      <% userPublications.forEach(pub=> { %>
-        <li>
-          <h3>
-            <%= pub.title %>
-          </h3>
-          <p>
-            <%= pub.publication %>
-          </p>
-          <small>
-            <%= new Date(pub.createdAt).toLocaleString() %>
-          </small>
-        </li>
-        <% }) %>
-    </ul>
-    <% } %>
+    <!-- New publication addition form -->
+    <div class="mb-5">
+      <h3>Share your thoughts out loud</h3>
+      <form action="/homepage" method="post" class="mb-4">
+        <input name="title" type="text" placeholder="What is your post about" required class="form-control mb-2">
+        <textarea name="publication" placeholder="Write your post" required class="form-control mb-2"
+          rows="3"></textarea>
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
+    </div>
 
+    <!-- List of all publications -->
+    <% if (allPublications && allPublications.length> 0) { %>
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        <% allPublications.forEach(pub=> { %>
+          <div class="col">
+            <div class="card h-100 shadow-sm">
+              <div class="card-body">
+                <h5 class="card-title">
+                  <%= pub.title %>
+                </h5>
+                <p class="card-text">
+                  <%= pub.publication %>
+                </p>
+              </div>
+              <div class="card-footer text-muted d-flex justify-content-between align-items-center">
+                <small>
+                  <%= new Date(pub.createdAt).toLocaleString() %> | Written by <%= pub.author.name %>
+                </small>
+
+                <!-- delete button for your own posts only -->
+                <% if (currentUserId && currentUserId.toString()===pub.author._id.toString()) { %>
+                  <form action="/publication/delete/<%= pub._id %>" method="POST">
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                  </form>
+                  <% } %>
+              </div>
+            </div>
+          </div>
+          <% }) %>
+      </div>
+      <% } else { %>
+        <div class="alert alert-info text-center">No publications yet.</div>
+        <% } %>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+    crossorigin="anonymous"></script>
 </body>
 
 </html>
