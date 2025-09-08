@@ -52,12 +52,16 @@ const Schema = mongoose.Schema;
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, "Required"]
+    required: [true, "Required"],
+    maxlength: [40, "Name cannot exceed 40 characters"]
   },
   email: {
     type: String,
     required: [true, "Required"],
-    unique: true
+    unique: true,
+    lowercase: true,
+    trim: true,
+    maxlength: [100, "Name cannot exceed 100 characters"]
   },
   password: {
     type: String,
@@ -110,7 +114,7 @@ app.route("/")
 app.route("/login")
   .post(async function (req, res) {
     try {
-      const foundUser = await User.findOne({ email: req.body.userName });
+      const foundUser = await User.findOne({ email: req.body.userName.toLowerCase() });
 
       if (!foundUser) {
         console.log("User not found");
@@ -144,7 +148,7 @@ app.route("/register")
   })
   .post(async function (req, res) {
     try {
-
+      const existingUser = await User.findOne({ email: req.body.userName.toLowerCase() })
       if (existingUser) {
         return res.status(400).send("Email is alredy registered");
       }
@@ -156,8 +160,6 @@ app.route("/register")
         email: req.body.userName,
         password: hash
       });
-
-      const existingUser = await User.findOne({ email: newUser.email })
 
       await newUser.save();
       res.redirect("/");
